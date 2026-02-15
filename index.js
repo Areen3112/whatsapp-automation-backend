@@ -3,7 +3,7 @@ import axios from "axios";
 import dotenv from "dotenv";
 import ExcelJS from "exceljs";
 import fs from "fs/promises";
-import  GoogleSpreadsheetPkg  from 'google-spreadsheet';
+import GoogleSpreadsheetPkg from 'google-spreadsheet';
 import jwt from 'jsonwebtoken';
 
 dotenv.config();
@@ -53,18 +53,18 @@ const { GoogleSpreadsheet } = GoogleSpreadsheetPkg;
 
 async function saveLeadToExcel(lead) {
   const SHEET_ID = "1xMgxqCRe5Q22RLD6-84odv_eQ6t7rjnTNNLgEUNiQ4s";
-  const CREDENTIALS_PATH = "./google-credentials.json";
 
   try {
-    const credentialsRaw = await fs.readFile(CREDENTIALS_PATH, 'utf8');
-    const credentials = JSON.parse(credentialsRaw);
+    // Load credentials from .env (NEVER commit these!)
+    const credentials = {
+      client_email: process.env.GOOGLE_CLIENT_EMAIL,
+      private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n')
+    };
 
     const doc = new GoogleSpreadsheet(SHEET_ID);
 
-    await doc.useServiceAccountAuth({
-      client_email: credentials.client_email,
-      private_key: credentials.private_key.replace(/\\n/g, '\n'),
-    });
+    // Authenticate using env vars (v3/v4 compatible)
+    await doc.useServiceAccountAuth(credentials);
 
     await doc.loadInfo();
 
@@ -77,7 +77,7 @@ async function saveLeadToExcel(lead) {
         "Intent",
         "Lead Score",
         "Message",
-        "Time",
+        "Time"
       ]);
     }
 
@@ -87,14 +87,14 @@ async function saveLeadToExcel(lead) {
       Intent: lead.intent,
       "Lead Score": lead.score,
       Message: lead.message,
-      Time: lead.time,
+      Time: lead.time
     });
 
     console.log("✅ Lead saved to Google Sheet:", lead.phone);
 
   } catch (err) {
-    console.error("❌ Failed to save to Google Sheet:", err);
-    console.log("Failed lead data:", lead);
+    console.error("❌ Failed to save to Google Sheet:", err.message);
+    console.log("Failed lead data:", JSON.stringify(lead, null, 2));
   }
 }
 
